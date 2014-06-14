@@ -1,0 +1,34 @@
+{
+  "name": "express-load-apps",
+  "version": "0.1.0",
+  "description": "Load express webapps incl. controllers and routers from given directory",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomasfr/express-load-apps.git"
+  },
+  "keywords": [
+    "express",
+    "load",
+    "mvc",
+    "express-load",
+    "express-load-apps",
+    "autoload"
+  ],
+  "author": "Thomas Fritz <fritztho@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/thomasfr/express-load-apps/issues"
+  },
+  "homepage": "https://github.com/thomasfr/express-load-apps",
+  "dependencies": {
+    "async": "^0.9.0",
+    "coffee-script": "^1.7.1",
+    "debug": "^1.0.2",
+    "express-simple-routing": "^1.0.1",
+    "loadfiles": "^0.1.1"
+  }
+}
