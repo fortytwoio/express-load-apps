@@ -7,17 +7,16 @@ util = require "util"
 
 fs = require "fs"
 path = require "path"
-async = require "async"
 
 exports = module.exports = load = (webappsPath, callback)->
     debug "Loading webapps from '%s'", webappsPath
     webapps = []
-    isDir = (content, callback)->
+    isDir = (content) ->
         webappPath = path.resolve webappsPath, content
-        fs.stat webappPath, (error, stats)->
-            return callback stats.isDirectory()
+        stats = fs.statSync webappPath
+        return stats.isDirectory()
 
-    setupWebapp = (webappName, callback) ->
+    setupWebapp = (webappName) ->
         webappPath = path.resolve webappsPath, webappName
 
         debug "Requiring '#{webappName}' at '#{webappPath}'"
@@ -43,23 +42,23 @@ exports = module.exports = load = (webappsPath, callback)->
         # TODO: This should be configurable via package.json or somehow. How?
         if webappName == "MAIN" then mountpoint = "/"
         webappSettings =
-            mountpoint :  mountpoint
-            app :         webapp
+            mountpoint : mountpoint
+            app : webapp
             controllers : controllers
-            routers :     routers
-            name :        webappName
-            path :        webappPath
+            routers : routers
+            name : webappName
+            path : webappPath
 
         routing webappSettings
         webapps.push webappSettings
 
-        callback(null)
-
-    fs.readdir webappsPath, (error, contents) ->
-        if error then return callback new Error("Error reading '#{webappsPath}': '#{util.inspect(error, depth : null)}'"), null
-        async.filter contents, isDir, (webappNames)->
-            async.each webappNames, setupWebapp, (error)->
-                return callback(error, webapps)
+    try
+        contents = fs.readdirSync webappsPath
+        webappNames = contents.filter isDir
+        webappNames.forEach setupWebapp
+        return callback(null, webapps)
+    catch error
+        return callback new Error("Error reading '#{webappsPath}': '#{util.inspect(error, depth : null)}'"), null
 
 
 
