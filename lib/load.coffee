@@ -18,6 +18,8 @@ exports = module.exports = load = (webappsPath, callback)->
 
     setupWebapp = (webappName) ->
         webappPath = path.resolve webappsPath, webappName
+        middlewaresPath = path.resolve webappPath, 'middlewares'
+
 
         debug "Requiring '#{webappName}' at '#{webappPath}'"
         webapp = require webappPath
@@ -38,10 +40,29 @@ exports = module.exports = load = (webappsPath, callback)->
         controllerNames = Object.keys controllers
         debug "Loaded '#{controllerNames.length}' controller(s) from webapp '#{webappName}': #{controllerNames.join ", "}"
 
+        if fs.existsSync middlewaresPath
+            loadMiddlewares = fileloader middlewaresPath, 'coffee'
+            try
+                preMiddlewares = loadMiddlewares "pre"
+                preMiddlewareNames = Object.keys preMiddlewares
+                debug "Loaded '#{preMiddlewareNames.length}' pre middleware(s) from webapp '#{webappName}': #{preMiddlewareNames.join ", "}"
+            catch error
+                debug "No preMiddlewares found"
+
+            try
+                postMiddlewares = loadMiddlewares "post"
+                postMiddlewareNames = Object.keys postMiddlewares
+                debug "Loaded '#{postMiddlewareNames.length}' pre middleware(s) from webapp '#{webappName}': #{postMiddlewareNames.join ", "}"
+            catch error
+                debug "No postMiddlewares found"
+
         mountpoint = "/#{webappName}/"
         # TODO: This should be configurable via package.json or somehow. How?
         if webappName == "MAIN" then mountpoint = "/"
         webappSettings =
+            mountpoint : mountpoint
+            preMiddlewares : preMiddlewares
+            postMiddlewares : postMiddlewares
             mountpoint : mountpoint
             app : webapp
             controllers : controllers
@@ -56,9 +77,10 @@ exports = module.exports = load = (webappsPath, callback)->
         contents = fs.readdirSync webappsPath
         webappNames = contents.filter isDir
         webappNames.forEach setupWebapp
-        return callback(null, webapps)
     catch error
         return callback new Error("Error reading '#{webappsPath}': '#{util.inspect(error, depth : null)}'"), null
+
+    return callback(null, webapps)
 
 
 
