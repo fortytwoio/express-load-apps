@@ -8,9 +8,28 @@ util = require "util"
 fs = require "fs"
 path = require "path"
 
+isFile = (path) ->
+    stats = fs.statSync path
+    return stats.isFile()
+
+loadFiles = (dirPath) ->
+    try
+        contents = fs.readdirSync dirPath
+        contents = contents.map (content) ->
+            return path.join dirPath, content
+        filteredContents = contents.filter isFile
+    catch
+        debug "'#{dirPath}' not found. returning empty array"
+        return []
+    fileModules = []
+    filteredContents.forEach (file) ->
+        fileModules.push require file
+    return fileModules
+
 exports = module.exports = load = (webappsPath, callback)->
     debug "Loading webapps from '%s'", webappsPath
     webapps = []
+
     isDir = (content) ->
         webappPath = path.resolve webappsPath, content
         stats = fs.statSync webappPath
@@ -19,7 +38,8 @@ exports = module.exports = load = (webappsPath, callback)->
     setupWebapp = (webappName) ->
         webappPath = path.resolve webappsPath, webappName
         middlewaresPath = path.resolve webappPath, 'middlewares'
-
+        preMiddlewaresPath = path.join middlewaresPath, 'pre'
+        postMiddlewaresPath = path.join middlewaresPath, 'post'
 
         debug "Requiring '#{webappName}' at '#{webappPath}'"
         webapp = require webappPath
@@ -40,33 +60,25 @@ exports = module.exports = load = (webappsPath, callback)->
         controllerNames = Object.keys controllers
         debug "Loaded '#{controllerNames.length}' controller(s) from webapp '#{webappName}': #{controllerNames.join ", "}"
 
-        if fs.existsSync middlewaresPath
-            loadMiddlewares = fileloader middlewaresPath, 'coffee'
-            try
-                preMiddlewares = loadMiddlewares "pre"
-                preMiddlewareNames = Object.keys preMiddlewares
-                debug "Loaded '#{preMiddlewareNames.length}' pre middleware(s) from webapp '#{webappName}': #{preMiddlewareNames.join ", "}"
-            catch error
-                debug "No preMiddlewares found"
+        preMiddlewares = loadFiles preMiddlewaresPath
+        preMiddlewareNames = Object.keys preMiddlewares
+        debug "Loaded '#{preMiddlewareNames.length}' pre middleware(s) from webapp '#{webappName}': #{preMiddlewareNames.join ", "}"
 
-            try
-                postMiddlewares = loadMiddlewares "post"
-                postMiddlewareNames = Object.keys postMiddlewares
-                debug "Loaded '#{postMiddlewareNames.length}' pre middleware(s) from webapp '#{webappName}': #{postMiddlewareNames.join ", "}"
-            catch error
-                debug "No postMiddlewares found"
+        postMiddlewares = loadFiles postMiddlewaresPath
+        postMiddlewareNames = Object.keys postMiddlewares
+        debug "Loaded '#{postMiddlewareNames.length}' pre middleware(s) from webapp '#{webappName}': #{postMiddlewareNames.join ", "}"
 
         mountpoint = "/#{webappName}/"
         # TODO: This should be configurable via package.json or somehow. How?
         if webappName == "MAIN" then mountpoint = "/"
         webappSettings =
             mountpoint : mountpoint
-            preMiddlewares : preMiddlewares
-            postMiddlewares : postMiddlewares
+            preMiddlewares : preMiddlewares or []
+            postMiddlewares : postMiddlewares or []
             mountpoint : mountpoint
             app : webapp
             controllers : controllers
-            routers : routers
+            routers : routers or []
             name : webappName
             path : webappPath
 
