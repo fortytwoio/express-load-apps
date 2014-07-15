@@ -1,6 +1,6 @@
 {
   "name": "express-load-apps",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Load express webapps incl. controllers and routers from given directory",
   "main": "index.js",
   "scripts": {
